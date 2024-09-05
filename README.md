@@ -57,18 +57,19 @@ set -euo pipefail
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [OPTION]
+Usage: $(basename "$0") [OPTIONS]
 
-Options:
-  --help
-  -d, --dbname           database to dump
-  -h, --host             database server host or socket directory
-  -p, --port             database server port number
-  -U, --username         connect as specified database user
-  -O, --output           output path
-  -n, --schema           dump only schemas matching pattern
-  -N, --exclude-schema   do not dump any schemas matching pattern
-  -v, --verbose
+OPTION                DESCRIPTION
+--help
+-d, --dbname          database to dump
+-h, --host            database server host or socket directory
+-p, --port            database server port number
+-U, --username        connect as specified database user
+-O, --output          output path
+-n, --schema          dump only schemas matching pattern
+-N, --exclude-schema  do not dump any schemas matching pattern
+-v, --verbose
+
 EOF
 }
 
@@ -189,6 +190,7 @@ main() {
   echo "schema=${schema[*]}"
   echo "exclude_schema=${exclude_schema[*]}"
   echo "verbose=${verbose}"
+
 }
 
 main "${@}"
