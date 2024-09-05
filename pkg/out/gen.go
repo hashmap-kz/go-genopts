@@ -2,6 +2,8 @@ package out
 
 import (
 	"fmt"
+	"github.com/hashmap-kz/go-genopts/pkg/util"
+	"log"
 	"strings"
 
 	"github.com/hashmap-kz/go-genopts/pkg/cfg"
@@ -52,7 +54,11 @@ func getOneShort(v cfg.Opt) string {
 }
 
 func getVariableNameFromKey(k string) string {
-	return strings.ReplaceAll(k, "-", "_")
+	ident := strings.ReplaceAll(k, "-", "_")
+	if !util.NameIsValidIdentifier(ident) {
+		log.Fatalf("expect identifier, got: %s", k)
+	}
+	return ident
 }
 
 // Generate opt keys suitable for this format:
@@ -95,15 +101,28 @@ func genChecks(o cfg.Opts) string {
 		varname := getVariableNameFromKey(k.Name)
 
 		if k.Type == cfg.OptTypeList {
-			res += f(2, "if [ -z \"${%s[*]}\" ]; then", varname)
+			res += f(2, `if [ -z "${%s[*]}" ]; then`, varname)
 		} else {
-			res += f(2, "if [ -z \"${%s}\" ]; then", varname)
+			res += f(2, `if [ -z "${%s}" ]; then`, varname)
 		}
 
-		res += f(4, "printf \"\\n[error] required arg is empty: %s\\n\\n\"", k.Name)
+		res += f(4, `printf "\n[error] required arg is empty: %s\n\n"`, k.Name)
 		res += p(4, "usage")
 		res += p(4, "exit 1")
 		res += p(2, "fi")
+	}
+	return res + "\n"
+}
+
+func genDebugVarsEcho(o cfg.Opts) string {
+	res := ""
+	for _, k := range o.Opts {
+		varname := getVariableNameFromKey(k.Name)
+		if k.Type == cfg.OptTypeList {
+			res += f(2, `echo "%s=${%s[*]}"`, varname, varname)
+		} else {
+			res += f(2, `echo "%s=${%s}"`, varname, varname)
+		}
 	}
 	return res + "\n"
 }
@@ -237,18 +256,11 @@ func GenOpts(opts cfg.Opts) string {
 		`
 	res += ftr + "\n"
 
-	res += "  # set checks\n"
+	res += p(2, "# set checks")
 	res += genChecks(opts)
 
-	res += "  # debug variables\n"
-	for _, k := range opts.Opts {
-		varname := getVariableNameFromKey(k.Name)
-		if k.Type == cfg.OptTypeList {
-			res += f(2, `echo "%s=${%s[*]}"`, varname, varname)
-		} else {
-			res += f(2, `echo "%s=${%s}"`, varname, varname)
-		}
-	}
+	res += p(2, "# debug variables")
+	res += genDebugVarsEcho(opts)
 
 	res += "}" + "\n\n"
 	res += `main "${@}"` + "\n\n"
