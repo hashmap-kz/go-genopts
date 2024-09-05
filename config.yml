@@ -14,15 +14,17 @@ opts:
     desc: "output path"
   # optional args
   schema:
+    type: list
     short: "n"
     desc: "dump only schemas matching pattern"
     optional: true
   exclude-schema:
+    type: list
     short: "N"
     desc: "do not dump any schemas matching pattern"
     optional: true
   verbose:
-    flag: true
+    type: bool
     optional: true
   debug:
     defaultValue: "2"

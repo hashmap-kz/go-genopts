@@ -16,8 +16,14 @@ func genLocals(o cfg.Opts) string {
 		if v.DefaultValue != "" {
 			res += fmt.Sprintf("  local %s=\"%s\"\n", varname, v.DefaultValue)
 		} else {
-			// if default value is not specified, set it as empty string
-			res += fmt.Sprintf("  local %s=''\n", varname)
+			if v.Type == cfg.OptTypeList {
+				res += fmt.Sprintf("  local %s=()\n", varname)
+			} else if v.Type == cfg.OptTypeBool {
+				res += fmt.Sprintf("  local %s='false'\n", varname)
+			} else {
+				// if default value is not specified, set it as empty string
+				res += fmt.Sprintf("  local %s=''\n", varname)
+			}
 		}
 	}
 	return res
@@ -49,7 +55,7 @@ func genOpts(o cfg.Opts) (string, string) {
 		shortOpts += getOneShort(k, v)
 		longOpts += k
 
-		if !v.Flag {
+		if v.Type != cfg.OptTypeBool {
 			shortOpts += ":"
 			longOpts += ":"
 		}
@@ -70,7 +76,12 @@ func genChecks(o cfg.Opts) string {
 		}
 		varname := getVariableNameFromKey(k)
 
-		res += fmt.Sprintf("  if [ -z \"${%s}\" ]; then\n", varname)
+		if v.Type == cfg.OptTypeList {
+			res += fmt.Sprintf("  if [ -z \"${%s[*]}\" ]; then\n", varname)
+		} else {
+			res += fmt.Sprintf("  if [ -z \"${%s}\" ]; then\n", varname)
+		}
+
 		res += fmt.Sprintf("    printf \"\\n[error] required arg is empty: %s\\n\\n\"\n", k)
 		res += fmt.Sprintf("    usage\n")
 		res += fmt.Sprintf("    exit 1\n")
@@ -152,10 +163,17 @@ func GenOpts(opts cfg.Opts) string {
 		varname := getVariableNameFromKey(k)
 
 		oneOpt := ""
-		if v.Flag {
+		if v.Type == cfg.OptTypeBool {
 			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k, v), k)
 			oneOpt += fmt.Sprintf("      %s=true\n", varname)
 			oneOpt += "      shift\n"
+			oneOpt += "      ;;\n"
+			res += oneOpt
+		} else if v.Type == cfg.OptTypeList {
+			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k, v), k)
+			// namespaces+=("${2}")
+			oneOpt += fmt.Sprintf(`      %s+=("${2}")`+"\n", varname)
+			oneOpt += "      shift 2\n"
 			oneOpt += "      ;;\n"
 			res += oneOpt
 		} else {
@@ -195,9 +213,13 @@ func GenOpts(opts cfg.Opts) string {
 	res += genChecks(opts)
 
 	res += "  # debug variables\n"
-	for k := range opts.Opts {
+	for k, v := range opts.Opts {
 		varname := getVariableNameFromKey(k)
-		res += fmt.Sprintf(`  echo "%s=${%s}"`+"\n", varname, varname)
+		if v.Type == cfg.OptTypeList {
+			res += fmt.Sprintf(`  echo "%s=${%s[*]}"`+"\n", varname, varname)
+		} else {
+			res += fmt.Sprintf(`  echo "%s=${%s}"`+"\n", varname, varname)
+		}
 	}
 
 	res += "}" + "\n\n"

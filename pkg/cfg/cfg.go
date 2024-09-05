@@ -12,12 +12,20 @@ type Opts struct {
 	Opts map[string]Opt `json:"opts"`
 }
 
+type OptType string
+
+const (
+	OptTypeBool OptType = "bool"
+	OptTypeList OptType = "list"
+)
+
 type Opt struct {
-	Short        string `json:"short"`
-	Flag         bool   `json:"flag"`
-	DefaultValue string `json:"defaultValue"`
-	Optional     bool   `json:"optional"`
-	Desc         string `json:"desc"`
+	Short string `json:"short"`
+	// Allowed: bool, list
+	Type         OptType `json:"type"`
+	DefaultValue string  `json:"defaultValue"`
+	Optional     bool    `json:"optional"`
+	Desc         string  `json:"desc"`
 }
 
 func sortedOptsData(opts Opts) map[string]Opt {
