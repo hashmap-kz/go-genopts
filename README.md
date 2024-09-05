@@ -6,7 +6,8 @@ It generates the main function, usage, argument parsing routine and checks.
 
 Mostly all parameters are configured.
 
-### Implementation
+### Implementation details
+
 * --help option is added by default, you don't need to specify it (and it's added as a long option only, this prevents collisions)
 * you don't need to specify short options, unless the short option is different that the first letter of the long one
 * by default all options are required, but you may add 'optional: true' setting
@@ -194,15 +195,32 @@ main "${@}"
 
 ```
 
-### Generate script:
+### Usage:
 
 ```
 go run main.go -c=config.yml > example.sh
 ```
 
-### Example usage of final script:
+### Example usage of generated script:
 
 ```
-bash example.sh -d keycloak_base -h 10.40.240.30 -p 5432 -U postgres --verbose -O "/mnt/backup" -n "public|data_audit"
-bash example.sh --dbname=keycloak_base --host=10.40.240.30 --port=5432 --username=postgres --verbose --output="/mnt/backup" --schema="public|data_audit"
+# short form
+bash example.sh \
+    -d keycloak_base \
+    -h 10.40.240.30 \
+    -p 5432 \
+    -U postgres \
+    -v \
+    -O "/mnt/backup" \
+    -n "public|data_audit"
+    
+# long form
+bash example.sh \
+    --dbname=keycloak_base \
+    --host=10.40.240.30 \
+    --port=5432 \
+    --username=postgres \
+    --verbose \
+    --output="/mnt/backup" \
+    --schema="public|data_audit"
 ```
