@@ -21,6 +21,8 @@ func p(pad int, arg string) string {
 
 // Declare local variables, set empty values:
 // local myvar=""
+// local myarr=()
+// local myopt=false
 func genLocals(o cfg.Opts) string {
 	res := ""
 	for _, k := range o.Opts {
