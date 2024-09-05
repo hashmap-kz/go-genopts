@@ -1,56 +1,3 @@
-# Generate bash getopt boilerplate.
-
-This tool is designed for fast setup bash scripts boilerplates.
-
-It generates the main function, usage, argument parsing routine and checks.
-
-Mostly all parameters are configured.
-
-### Implementation
-* --help option is added by default, you don't need to specify it (and it's added as a long option only, this prevents collisions)
-* you don't need to specify short options, unless the short option is different that the first letter of the long one
-* by default all options are required, but you may add 'optional: true' setting
-* descriptions are used to generate helpful usage
-* in a field 'type' you may use "list, bool" values 
-
-### Input config example
-
-```
-opts:
-  # required args
-  - name: dbname
-    desc: "database to dump"
-  - name: host
-    desc: "database server host or socket directory"
-  - name: port
-    desc: "database server port number"
-  - name: username
-    short: U
-    desc: "connect as specified database user"
-  - name: output
-    short: O
-    desc: "output path"
-  # optional args
-  - name: schema
-    type: list
-    short: "n"
-    desc: "dump only schemas matching pattern"
-    optional: true
-  - name: exclude-schema
-    type: list
-    short: "N"
-    desc: "do not dump any schemas matching pattern"
-    optional: true
-  - name: verbose
-    defaultValue: "true"
-    type: bool
-    optional: true
-
-```
-
-### Generated code
-
-```
 #!/bin/bash
 set -euo pipefail
 
@@ -191,18 +138,3 @@ main() {
 }
 
 main "${@}"
-
-```
-
-### Generate script:
-
-```
-go run main.go -config=config.yml > test.sh
-```
-
-### Example usage of final script:
-
-```
-bash test.sh -d keycloak_base -h 10.40.240.30 -p 5432 -U postgres --verbose -O "/mnt/backup" -n "public|data_audit"
-bash test.sh --dbname=keycloak_base --host=10.40.240.30 --port=5432 --username=postgres --verbose --output="/mnt/backup" --schema="public|data_audit"
-```

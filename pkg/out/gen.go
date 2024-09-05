@@ -75,6 +75,14 @@ func genOpts(o cfg.Opts) (string, string) {
 		}
 		i++
 	}
+
+	// note: special handling for '--help'
+	if len(longOpts) > 0 {
+		longOpts += ",help"
+	} else {
+		longOpts += "help"
+	}
+
 	return shortOpts, longOpts
 }
 
@@ -101,14 +109,14 @@ func genChecks(o cfg.Opts) string {
 }
 
 func getMaxPadding(o cfg.Opts) int {
-	max := 0
+	maxLen := 0
 	for _, k := range o.Opts {
 		s := fmt.Sprintf("-%s, --%s\n", getOneShort(k), k.Name)
-		if len(s) > max {
-			max = len(s)
+		if len(s) > maxLen {
+			maxLen = len(s)
 		}
 	}
-	return max
+	return maxLen
 }
 
 func getPadding(what string, max int) string {
@@ -123,6 +131,10 @@ func genUsage(o cfg.Opts) string {
 	optsDesc += "	cat <<EOF\n"
 	optsDesc += `Usage: $(basename "$0") [OPTION]` + "\n\n"
 	optsDesc += "Options:\n"
+
+	// note: special handling for '--help'
+	optsDesc += "  --help\n"
+
 	for _, k := range o.Opts {
 		sh := getOneShort(k)
 
@@ -152,8 +164,7 @@ func GenOpts(opts cfg.Opts) string {
 
 	// declare options list
 	shorts, longs := genOpts(opts)
-	validArgs := f(2, `VALID_ARGS=$(getopt -o %s --long %s -- "$@")`, shorts, longs)
-	res += fmt.Sprintln(validArgs)
+	res += f(2, `VALID_ARGS=$(getopt -o %s --long %s -- "$@")`, shorts, longs)
 
 	hdr := `
 	# shellcheck disable=SC2181
@@ -175,7 +186,7 @@ func GenOpts(opts cfg.Opts) string {
 		oneOpt := ""
 		if k.Type == cfg.OptTypeBool {
 			oneOpt += f(4, "-%s | --%s)", getOneShort(k), k.Name)
-			oneOpt += f(6, "%s=true\n", varname)
+			oneOpt += f(6, "%s=true", varname)
 			oneOpt += p(6, "shift")
 			oneOpt += p(6, ";;")
 			res += oneOpt
@@ -194,13 +205,21 @@ func GenOpts(opts cfg.Opts) string {
 		}
 	}
 
+	// note: special handling for '--help'
+	// always add help (as a long option)
+	oneOpt := p(4, "--help)")
+	oneOpt += p(6, "usage")
+	oneOpt += p(6, "exit 0")
+	oneOpt += p(6, ";;")
+	res += oneOpt
+
 	ftr := `
 		--)
 			shift
 			break
 			;;
 		*)
-			printf "unexpected argument ${1}"
+			echo "unexpected argument ${1}"
 			usage
 			exit 1
 			;;
