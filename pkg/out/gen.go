@@ -2,11 +2,11 @@ package out
 
 import (
 	"fmt"
+	"github.com/hashmap-kz/go-genopts/pkg/cfg"
 	"github.com/hashmap-kz/go-genopts/pkg/util"
+	"github.com/hashmap-kz/go-texttable/pkg/table"
 	"log"
 	"strings"
-
-	"github.com/hashmap-kz/go-genopts/pkg/cfg"
 )
 
 func f(pad int, format string, a ...any) string {
@@ -21,6 +21,8 @@ func p(pad int, arg string) string {
 
 // Declare local variables, set empty values:
 // local myvar=""
+// local myarr=()
+// local myopt=false
 func genLocals(o cfg.Opts) string {
 	res := ""
 	for _, k := range o.Opts {
@@ -127,44 +129,34 @@ func genDebugVarsEcho(o cfg.Opts) string {
 	return res + "\n"
 }
 
-func getMaxPadding(o cfg.Opts) int {
-	maxLen := 0
-	for _, k := range o.Opts {
-		s := fmt.Sprintf("-%s, --%s\n", getOneShort(k), k.Name)
-		if len(s) > maxLen {
-			maxLen = len(s)
-		}
-	}
-	return maxLen
-}
-
-func getPadding(what string, max int) string {
-	diff := max - len(what) + 1
-	return strings.Repeat(" ", diff)
-}
-
 func genUsage(o cfg.Opts) string {
-	maxPad := getMaxPadding(o)
 
 	optsDesc := "usage() {\n"
 	optsDesc += "	cat <<EOF\n"
-	optsDesc += `Usage: $(basename "$0") [OPTION]` + "\n\n"
-	optsDesc += "Options:\n"
+	optsDesc += `Usage: $(basename "$0") [OPTIONS]` + "\n\n"
+
+	// pretty print options in a table-based style
+	tbl := table.NewTextTable()
+	tbl.DefineColumn("OPTION", table.LEFT, table.LEFT)
+	tbl.DefineColumn("DESCRIPTION", table.LEFT, table.LEFT)
 
 	// note: special handling for '--help'
-	optsDesc += "  --help\n"
+	tbl.InsertAll("--help")
+	tbl.EndRow()
 
 	for _, k := range o.Opts {
 		sh := getOneShort(k)
 
 		if k.Desc != "" {
-			pad := getPadding(fmt.Sprintf("-%s, --%s\n", sh, k.Name), maxPad)
-			optsDesc += f(2, "-%s, --%s %s %s", sh, k.Name, pad, k.Desc)
+			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name), k.Desc)
+			tbl.EndRow()
 		} else {
-			optsDesc += f(2, "-%s, --%s", sh, k.Name)
+			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name))
+			tbl.EndRow()
 		}
 	}
 
+	optsDesc += tbl.Print() + "\n"
 	optsDesc += "EOF\n"
 	optsDesc += "}\n\n"
 	return optsDesc
