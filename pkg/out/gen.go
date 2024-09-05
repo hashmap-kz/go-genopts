@@ -2,10 +2,22 @@ package out
 
 import (
 	"fmt"
+	"github.com/hashmap-kz/go-genopts/pkg/util"
+	"log"
 	"strings"
 
 	"github.com/hashmap-kz/go-genopts/pkg/cfg"
 )
+
+func f(pad int, format string, a ...any) string {
+	ws := strings.Repeat(" ", pad)
+	return ws + fmt.Sprintf(format, a...) + "\n"
+}
+
+func p(pad int, arg string) string {
+	ws := strings.Repeat(" ", pad)
+	return ws + arg + "\n"
+}
 
 // Declare local variables, set empty values:
 // local myvar=""
@@ -14,15 +26,15 @@ func genLocals(o cfg.Opts) string {
 	for _, k := range o.Opts {
 		varname := getVariableNameFromKey(k.Name)
 		if k.DefaultValue != "" {
-			res += fmt.Sprintf("  local %s=\"%s\"\n", varname, k.DefaultValue)
+			res += f(2, "local %s=\"%s\"", varname, k.DefaultValue)
 		} else {
 			if k.Type == cfg.OptTypeList {
-				res += fmt.Sprintf("  local %s=()\n", varname)
+				res += f(2, "local %s=()", varname)
 			} else if k.Type == cfg.OptTypeBool {
-				res += fmt.Sprintf("  local %s='false'\n", varname)
+				res += f(2, "local %s='false'", varname)
 			} else {
 				// if default value is not specified, set it as empty string
-				res += fmt.Sprintf("  local %s=''\n", varname)
+				res += f(2, "local %s=''", varname)
 			}
 		}
 	}
@@ -42,7 +54,11 @@ func getOneShort(v cfg.Opt) string {
 }
 
 func getVariableNameFromKey(k string) string {
-	return strings.ReplaceAll(k, "-", "_")
+	ident := strings.ReplaceAll(k, "-", "_")
+	if !util.NameIsValidIdentifier(ident) {
+		log.Fatalf("expect identifier, got: %s", k)
+	}
+	return ident
 }
 
 // Generate opt keys suitable for this format:
@@ -65,6 +81,14 @@ func genOpts(o cfg.Opts) (string, string) {
 		}
 		i++
 	}
+
+	// note: special handling for '--help'
+	if len(longOpts) > 0 {
+		longOpts += ",help"
+	} else {
+		longOpts += "help"
+	}
+
 	return shortOpts, longOpts
 }
 
@@ -77,28 +101,41 @@ func genChecks(o cfg.Opts) string {
 		varname := getVariableNameFromKey(k.Name)
 
 		if k.Type == cfg.OptTypeList {
-			res += fmt.Sprintf("  if [ -z \"${%s[*]}\" ]; then\n", varname)
+			res += f(2, `if [ -z "${%s[*]}" ]; then`, varname)
 		} else {
-			res += fmt.Sprintf("  if [ -z \"${%s}\" ]; then\n", varname)
+			res += f(2, `if [ -z "${%s}" ]; then`, varname)
 		}
 
-		res += fmt.Sprintf("    printf \"\\n[error] required arg is empty: %s\\n\\n\"\n", k.Name)
-		res += "    usage\n"
-		res += "    exit 1\n"
-		res += "  fi\n"
+		res += f(4, `printf "\n[error] required arg is empty: %s\n\n"`, k.Name)
+		res += p(4, "usage")
+		res += p(4, "exit 1")
+		res += p(2, "fi")
+	}
+	return res + "\n"
+}
+
+func genDebugVarsEcho(o cfg.Opts) string {
+	res := ""
+	for _, k := range o.Opts {
+		varname := getVariableNameFromKey(k.Name)
+		if k.Type == cfg.OptTypeList {
+			res += f(2, `echo "%s=${%s[*]}"`, varname, varname)
+		} else {
+			res += f(2, `echo "%s=${%s}"`, varname, varname)
+		}
 	}
 	return res + "\n"
 }
 
 func getMaxPadding(o cfg.Opts) int {
-	max := 0
+	maxLen := 0
 	for _, k := range o.Opts {
 		s := fmt.Sprintf("-%s, --%s\n", getOneShort(k), k.Name)
-		if len(s) > max {
-			max = len(s)
+		if len(s) > maxLen {
+			maxLen = len(s)
 		}
 	}
-	return max
+	return maxLen
 }
 
 func getPadding(what string, max int) string {
@@ -113,14 +150,18 @@ func genUsage(o cfg.Opts) string {
 	optsDesc += "	cat <<EOF\n"
 	optsDesc += `Usage: $(basename "$0") [OPTION]` + "\n\n"
 	optsDesc += "Options:\n"
+
+	// note: special handling for '--help'
+	optsDesc += "  --help\n"
+
 	for _, k := range o.Opts {
 		sh := getOneShort(k)
 
 		if k.Desc != "" {
 			pad := getPadding(fmt.Sprintf("-%s, --%s\n", sh, k.Name), maxPad)
-			optsDesc += fmt.Sprintf("  -%s, --%s %s %s\n", sh, k.Name, pad, k.Desc)
+			optsDesc += f(2, "-%s, --%s %s %s", sh, k.Name, pad, k.Desc)
 		} else {
-			optsDesc += fmt.Sprintf("  -%s, --%s\n", sh, k.Name)
+			optsDesc += f(2, "-%s, --%s", sh, k.Name)
 		}
 	}
 
@@ -142,8 +183,7 @@ func GenOpts(opts cfg.Opts) string {
 
 	// declare options list
 	shorts, longs := genOpts(opts)
-	validArgs := fmt.Sprintf(`  VALID_ARGS=$(getopt -o %s --long %s -- "$@")`, shorts, longs)
-	res += fmt.Sprintln(validArgs)
+	res += f(2, `VALID_ARGS=$(getopt -o %s --long %s -- "$@")`, shorts, longs)
 
 	hdr := `
 	# shellcheck disable=SC2181
@@ -164,25 +204,33 @@ func GenOpts(opts cfg.Opts) string {
 
 		oneOpt := ""
 		if k.Type == cfg.OptTypeBool {
-			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k), k.Name)
-			oneOpt += fmt.Sprintf("      %s=true\n", varname)
-			oneOpt += "      shift\n"
-			oneOpt += "      ;;\n"
+			oneOpt += f(4, "-%s | --%s)", getOneShort(k), k.Name)
+			oneOpt += f(6, "%s=true", varname)
+			oneOpt += p(6, "shift")
+			oneOpt += p(6, ";;")
 			res += oneOpt
 		} else if k.Type == cfg.OptTypeList {
-			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k), k.Name)
-			oneOpt += fmt.Sprintf(`      %s+=("${2}")`+"\n", varname)
-			oneOpt += "      shift 2\n"
-			oneOpt += "      ;;\n"
+			oneOpt += f(4, "-%s | --%s)", getOneShort(k), k.Name)
+			oneOpt += f(6, `%s+=("${2}")`, varname)
+			oneOpt += p(6, "shift 2")
+			oneOpt += p(6, ";;")
 			res += oneOpt
 		} else {
-			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k), k.Name)
-			oneOpt += fmt.Sprintf(`      %s="${2}"`+"\n", varname)
-			oneOpt += "      shift 2\n"
-			oneOpt += "      ;;\n"
+			oneOpt += f(4, "-%s | --%s)", getOneShort(k), k.Name)
+			oneOpt += f(6, `%s="${2}"`, varname)
+			oneOpt += p(6, "shift 2")
+			oneOpt += p(6, ";;")
 			res += oneOpt
 		}
 	}
+
+	// note: special handling for '--help'
+	// always add help (as a long option)
+	oneOpt := p(4, "--help)")
+	oneOpt += p(6, "usage")
+	oneOpt += p(6, "exit 0")
+	oneOpt += p(6, ";;")
+	res += oneOpt
 
 	ftr := `
 		--)
@@ -190,7 +238,7 @@ func GenOpts(opts cfg.Opts) string {
 			break
 			;;
 		*)
-			printf "unexpected argument ${1}"
+			echo "unexpected argument ${1}"
 			usage
 			exit 1
 			;;
@@ -208,18 +256,11 @@ func GenOpts(opts cfg.Opts) string {
 		`
 	res += ftr + "\n"
 
-	res += "  # set checks\n"
+	res += p(2, "# set checks")
 	res += genChecks(opts)
 
-	res += "  # debug variables\n"
-	for _, k := range opts.Opts {
-		varname := getVariableNameFromKey(k.Name)
-		if k.Type == cfg.OptTypeList {
-			res += fmt.Sprintf(`  echo "%s=${%s[*]}"`+"\n", varname, varname)
-		} else {
-			res += fmt.Sprintf(`  echo "%s=${%s}"`+"\n", varname, varname)
-		}
-	}
+	res += p(2, "# debug variables")
+	res += genDebugVarsEcho(opts)
 
 	res += "}" + "\n\n"
 	res += `main "${@}"` + "\n\n"

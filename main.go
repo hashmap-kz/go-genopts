@@ -11,7 +11,7 @@ import (
 
 func main() {
 	var configFile string
-	flag.StringVar(&configFile, "config", "", "config file location")
+	flag.StringVar(&configFile, "c", "", "config file location")
 	flag.Parse()
 
 	if configFile == "" {
