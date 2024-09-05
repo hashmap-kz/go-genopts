@@ -197,12 +197,12 @@ main "${@}"
 ### Generate script:
 
 ```
-go run main.go -config=config.yml > test.sh
+go run main.go -c=config.yml > example.sh
 ```
 
 ### Example usage of final script:
 
 ```
-bash test.sh -d keycloak_base -h 10.40.240.30 -p 5432 -U postgres --verbose -O "/mnt/backup" -n "public|data_audit"
-bash test.sh --dbname=keycloak_base --host=10.40.240.30 --port=5432 --username=postgres --verbose --output="/mnt/backup" --schema="public|data_audit"
+bash example.sh -d keycloak_base -h 10.40.240.30 -p 5432 -U postgres --verbose -O "/mnt/backup" -n "public|data_audit"
+bash example.sh --dbname=keycloak_base --host=10.40.240.30 --port=5432 --username=postgres --verbose --output="/mnt/backup" --schema="public|data_audit"
 ```
