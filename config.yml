@@ -1,33 +1,31 @@
 opts:
   # required args
-  dbname:
+  - name: dbname
     desc: "database to dump"
-  host:
+  - name: host
     desc: "database server host or socket directory"
-  port:
+  - name: port
     desc: "database server port number"
-  username:
+  - name: username
     short: U
     desc: "connect as specified database user"
-  output:
+  - name: output
     short: O
     desc: "output path"
   # optional args
-  schema:
+  - name: schema
     type: list
     short: "n"
     desc: "dump only schemas matching pattern"
     optional: true
-  exclude-schema:
+  - name: exclude-schema
     type: list
     short: "N"
     desc: "do not dump any schemas matching pattern"
     optional: true
-  verbose:
+  - name: verbose
+    defaultValue: "true"
     type: bool
-    optional: true
-  debug:
-    defaultValue: "2"
     optional: true
 #
 # bash test.sh -d keycloak_base -h 10.40.240.30 -p 5432 -U postgres --verbose -O "/mnt/backup" -n "public|data_audit"

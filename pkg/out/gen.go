@@ -11,14 +11,14 @@ import (
 // local myvar=""
 func genLocals(o cfg.Opts) string {
 	res := ""
-	for k, v := range o.Opts {
-		varname := getVariableNameFromKey(k)
-		if v.DefaultValue != "" {
-			res += fmt.Sprintf("  local %s=\"%s\"\n", varname, v.DefaultValue)
+	for _, k := range o.Opts {
+		varname := getVariableNameFromKey(k.Name)
+		if k.DefaultValue != "" {
+			res += fmt.Sprintf("  local %s=\"%s\"\n", varname, k.DefaultValue)
 		} else {
-			if v.Type == cfg.OptTypeList {
+			if k.Type == cfg.OptTypeList {
 				res += fmt.Sprintf("  local %s=()\n", varname)
-			} else if v.Type == cfg.OptTypeBool {
+			} else if k.Type == cfg.OptTypeBool {
 				res += fmt.Sprintf("  local %s='false'\n", varname)
 			} else {
 				// if default value is not specified, set it as empty string
@@ -31,12 +31,12 @@ func genLocals(o cfg.Opts) string {
 
 // Gen short option. If 'Short' field is specified, it'll be used,
 // first letter of option instead
-func getOneShort(k string, v cfg.Opt) string {
+func getOneShort(v cfg.Opt) string {
 	shortOpts := ""
 	if v.Short != "" {
 		shortOpts += v.Short
 	} else {
-		shortOpts += string(k[0])
+		shortOpts += string(v.Name[0])
 	}
 	return shortOpts
 }
@@ -51,11 +51,11 @@ func genOpts(o cfg.Opts) (string, string) {
 	shortOpts := ""
 	longOpts := ""
 	i := 0
-	for k, v := range o.Opts {
-		shortOpts += getOneShort(k, v)
-		longOpts += k
+	for _, k := range o.Opts {
+		shortOpts += getOneShort(k)
+		longOpts += k.Name
 
-		if v.Type != cfg.OptTypeBool {
+		if k.Type != cfg.OptTypeBool {
 			shortOpts += ":"
 			longOpts += ":"
 		}
@@ -70,30 +70,30 @@ func genOpts(o cfg.Opts) (string, string) {
 
 func genChecks(o cfg.Opts) string {
 	res := ""
-	for k, v := range o.Opts {
-		if v.Optional {
+	for _, k := range o.Opts {
+		if k.Optional {
 			continue
 		}
-		varname := getVariableNameFromKey(k)
+		varname := getVariableNameFromKey(k.Name)
 
-		if v.Type == cfg.OptTypeList {
+		if k.Type == cfg.OptTypeList {
 			res += fmt.Sprintf("  if [ -z \"${%s[*]}\" ]; then\n", varname)
 		} else {
 			res += fmt.Sprintf("  if [ -z \"${%s}\" ]; then\n", varname)
 		}
 
-		res += fmt.Sprintf("    printf \"\\n[error] required arg is empty: %s\\n\\n\"\n", k)
-		res += fmt.Sprintf("    usage\n")
-		res += fmt.Sprintf("    exit 1\n")
-		res += fmt.Sprintf("  fi\n")
+		res += fmt.Sprintf("    printf \"\\n[error] required arg is empty: %s\\n\\n\"\n", k.Name)
+		res += "    usage\n"
+		res += "    exit 1\n"
+		res += "  fi\n"
 	}
 	return res + "\n"
 }
 
 func getMaxPadding(o cfg.Opts) int {
 	max := 0
-	for k, v := range o.Opts {
-		s := fmt.Sprintf("-%s, --%s\n", getOneShort(k, v), k)
+	for _, k := range o.Opts {
+		s := fmt.Sprintf("-%s, --%s\n", getOneShort(k), k.Name)
 		if len(s) > max {
 			max = len(s)
 		}
@@ -113,14 +113,14 @@ func genUsage(o cfg.Opts) string {
 	optsDesc += "	cat <<EOF\n"
 	optsDesc += `Usage: $(basename "$0") [OPTION]` + "\n\n"
 	optsDesc += "Options:\n"
-	for k, v := range o.Opts {
-		sh := getOneShort(k, v)
+	for _, k := range o.Opts {
+		sh := getOneShort(k)
 
-		if v.Desc != "" {
-			pad := getPadding(fmt.Sprintf("-%s, --%s\n", sh, k), maxPad)
-			optsDesc += fmt.Sprintf("  -%s, --%s %s %s\n", sh, k, pad, v.Desc)
+		if k.Desc != "" {
+			pad := getPadding(fmt.Sprintf("-%s, --%s\n", sh, k.Name), maxPad)
+			optsDesc += fmt.Sprintf("  -%s, --%s %s %s\n", sh, k.Name, pad, k.Desc)
 		} else {
-			optsDesc += fmt.Sprintf("  -%s, --%s\n", sh, k)
+			optsDesc += fmt.Sprintf("  -%s, --%s\n", sh, k.Name)
 		}
 	}
 
@@ -159,25 +159,24 @@ func GenOpts(opts cfg.Opts) string {
 		`
 	res += hdr + "\n"
 
-	for k, v := range opts.Opts {
-		varname := getVariableNameFromKey(k)
+	for _, k := range opts.Opts {
+		varname := getVariableNameFromKey(k.Name)
 
 		oneOpt := ""
-		if v.Type == cfg.OptTypeBool {
-			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k, v), k)
+		if k.Type == cfg.OptTypeBool {
+			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k), k.Name)
 			oneOpt += fmt.Sprintf("      %s=true\n", varname)
 			oneOpt += "      shift\n"
 			oneOpt += "      ;;\n"
 			res += oneOpt
-		} else if v.Type == cfg.OptTypeList {
-			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k, v), k)
-			// namespaces+=("${2}")
+		} else if k.Type == cfg.OptTypeList {
+			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k), k.Name)
 			oneOpt += fmt.Sprintf(`      %s+=("${2}")`+"\n", varname)
 			oneOpt += "      shift 2\n"
 			oneOpt += "      ;;\n"
 			res += oneOpt
 		} else {
-			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k, v), k)
+			oneOpt += fmt.Sprintf("    -%s | --%s)\n", getOneShort(k), k.Name)
 			oneOpt += fmt.Sprintf(`      %s="${2}"`+"\n", varname)
 			oneOpt += "      shift 2\n"
 			oneOpt += "      ;;\n"
@@ -213,9 +212,9 @@ func GenOpts(opts cfg.Opts) string {
 	res += genChecks(opts)
 
 	res += "  # debug variables\n"
-	for k, v := range opts.Opts {
-		varname := getVariableNameFromKey(k)
-		if v.Type == cfg.OptTypeList {
+	for _, k := range opts.Opts {
+		varname := getVariableNameFromKey(k.Name)
+		if k.Type == cfg.OptTypeList {
 			res += fmt.Sprintf(`  echo "%s=${%s[*]}"`+"\n", varname, varname)
 		} else {
 			res += fmt.Sprintf(`  echo "%s=${%s}"`+"\n", varname, varname)
