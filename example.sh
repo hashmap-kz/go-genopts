@@ -5,16 +5,16 @@ usage() {
 	cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
-OPTION                DESCRIPTION                             
---help                                                        
--d, --dbname          database to dump                        
--h, --host            database server host or socket directory
--p, --port            database server port number             
--U, --username        connect as specified database user      
--O, --output          output path                             
--n, --schema          dump only schemas matching pattern      
--N, --exclude-schema  do not dump any schemas matching pattern
--v, --verbose                                                 
+OPTION                DESCRIPTION                               REQUIRED
+--help                                                                  
+-d, --dbname          database to dump                          V       
+-h, --host            database server host or socket directory  V       
+-p, --port            database server port number               V       
+-U, --username        connect as specified database user        V       
+-O, --output          output path                               V       
+-n, --schema          dump only schemas matching pattern                
+-N, --exclude-schema  do not dump any schemas matching pattern          
+-v, --verbose                                                           
 
 EOF
 }
@@ -96,6 +96,7 @@ main() {
     usage
     exit 1
   fi
+
   # set checks
   if [ -z "${dbname}" ]; then
     printf "\n[error] required arg is empty: dbname\n\n"

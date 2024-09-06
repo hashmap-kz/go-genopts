@@ -130,6 +130,13 @@ func genDebugVarsEcho(o cfg.Opts) string {
 	return res + "\n"
 }
 
+func req(k cfg.Opt) string {
+	if k.Optional {
+		return ""
+	}
+	return "V"
+}
+
 func genUsage(o cfg.Opts) string {
 
 	optsDesc := "usage() {\n"
@@ -140,6 +147,7 @@ func genUsage(o cfg.Opts) string {
 	tbl := table.NewTextTable()
 	tbl.DefineColumn("OPTION", table.LEFT, table.LEFT)
 	tbl.DefineColumn("DESCRIPTION", table.LEFT, table.LEFT)
+	tbl.DefineColumn("REQUIRED", table.LEFT, table.LEFT)
 
 	// note: special handling for '--help'
 	tbl.InsertAll("--help")
@@ -149,10 +157,10 @@ func genUsage(o cfg.Opts) string {
 		sh := getOneShort(k)
 
 		if k.Desc != "" {
-			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name), k.Desc)
+			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name), k.Desc, req(k))
 			tbl.EndRow()
 		} else {
-			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name))
+			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name), req(k))
 			tbl.EndRow()
 		}
 	}
@@ -218,11 +226,10 @@ func GenOpts(opts cfg.Opts) string {
 
 	// note: special handling for '--help'
 	// always add help (as a long option)
-	oneOpt := p(4, "--help)")
-	oneOpt += p(6, "usage")
-	oneOpt += p(6, "exit 0")
-	oneOpt += p(6, ";;")
-	res += oneOpt
+	res += p(4, "--help)")
+	res += p(6, "usage")
+	res += p(6, "exit 0")
+	res += p(6, ";;")
 
 	// options footer (always the same)
 	res += p(2, `  --)`)
@@ -245,6 +252,7 @@ func GenOpts(opts cfg.Opts) string {
 	res += p(2, `  usage`)
 	res += p(2, `  exit 1`)
 	res += p(2, `fi`)
+	res += "\n"
 
 	// generate checks for required variables
 	res += p(2, "# set checks")
