@@ -2,11 +2,12 @@ package out
 
 import (
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/hashmap-kz/go-genopts/pkg/cfg"
 	"github.com/hashmap-kz/go-genopts/pkg/util"
 	"github.com/hashmap-kz/go-texttable/pkg/table"
-	"log"
-	"strings"
 )
 
 func f(pad int, format string, a ...any) string {
@@ -129,6 +130,13 @@ func genDebugVarsEcho(o cfg.Opts) string {
 	return res + "\n"
 }
 
+func req(k cfg.Opt) string {
+	if k.Optional {
+		return ""
+	}
+	return "V"
+}
+
 func genUsage(o cfg.Opts) string {
 
 	optsDesc := "usage() {\n"
@@ -139,6 +147,7 @@ func genUsage(o cfg.Opts) string {
 	tbl := table.NewTextTable()
 	tbl.DefineColumn("OPTION", table.LEFT, table.LEFT)
 	tbl.DefineColumn("DESCRIPTION", table.LEFT, table.LEFT)
+	tbl.DefineColumn("REQUIRED", table.LEFT, table.LEFT)
 
 	// note: special handling for '--help'
 	tbl.InsertAll("--help")
@@ -148,10 +157,10 @@ func genUsage(o cfg.Opts) string {
 		sh := getOneShort(k)
 
 		if k.Desc != "" {
-			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name), k.Desc)
+			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name), k.Desc, req(k))
 			tbl.EndRow()
 		} else {
-			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name))
+			tbl.InsertAll(fmt.Sprintf("-%s, --%s", sh, k.Name), req(k))
 			tbl.EndRow()
 		}
 	}
@@ -175,22 +184,24 @@ func GenOpts(opts cfg.Opts) string {
 
 	// declare options list
 	shorts, longs := genOpts(opts)
-	res += f(2, `VALID_ARGS=$(getopt -o %s --long %s -- "$@")`, shorts, longs)
+	res += f(2, "getopt_short_opts='%s'", shorts)
+	res += f(2, "getopt_long_opts='%s'", longs)
+	res += p(2, `VALID_ARGS=$(getopt -o "${getopt_short_opts}" --long "${getopt_long_opts}" -- "$@")`)
+	res += "\n"
 
-	hdr := `
-	# shellcheck disable=SC2181
-	if [ $? != 0 ]; then
-		printf "error parsing options"
-		usage
-		exit 1
-	fi
+	// options header (always the same)
+	res += p(2, `# shellcheck disable=SC2181`)
+	res += p(2, `if [ $? != 0 ]; then`)
+	res += p(2, `  echo "error parsing options: $?"`)
+	res += p(2, `  usage`)
+	res += p(2, `  exit 1`)
+	res += p(2, `fi`)
+	res += p(2, ``)
+	res += p(2, `eval set -- "$VALID_ARGS"`)
+	res += p(2, `while true; do`)
+	res += p(2, `  case "$1" in`)
 
-	eval set -- "$VALID_ARGS"
-	while true; do
-		case "$1" in
-		`
-	res += hdr + "\n"
-
+	// options cases
 	for _, k := range opts.Opts {
 		varname := getVariableNameFromKey(k.Name)
 
@@ -218,39 +229,39 @@ func GenOpts(opts cfg.Opts) string {
 
 	// note: special handling for '--help'
 	// always add help (as a long option)
-	oneOpt := p(4, "--help)")
-	oneOpt += p(6, "usage")
-	oneOpt += p(6, "exit 0")
-	oneOpt += p(6, ";;")
-	res += oneOpt
+	res += p(4, "--help)")
+	res += p(6, "usage")
+	res += p(6, "exit 0")
+	res += p(6, ";;")
 
-	ftr := `
-		--)
-			shift
-			break
-			;;
-		*)
-			echo "unexpected argument ${1}"
-			usage
-			exit 1
-			;;
-		esac
-	done
+	// options footer (always the same)
+	res += p(2, `  --)`)
+	res += p(2, `    shift`)
+	res += p(2, `    break`)
+	res += p(2, `    ;;`)
+	res += p(2, `  *)`)
+	res += p(2, `    echo "unexpected argument ${1}"`)
+	res += p(2, `    usage`)
+	res += p(2, `    exit 1`)
+	res += p(2, `    ;;`)
+	res += p(2, `  esac`)
+	res += p(2, `done`)
+	res += p(2, ``)
+	res += p(2, `# check remaining`)
+	res += p(2, `shift $((OPTIND - 1))`)
+	res += p(2, `remaining_args="${*}"`)
+	res += p(2, `if [ -n "${remaining_args}" ]; then`)
+	res += p(2, `  echo "remaining args are not allowed: ${remaining_args[*]}"`)
+	res += p(2, `  usage`)
+	res += p(2, `  exit 1`)
+	res += p(2, `fi`)
+	res += "\n"
 
-	# check remaining
-	shift $((OPTIND - 1))
-	remaining_args="${*}"
-	if [ -n "${remaining_args}" ]; then
-		echo "remaining args are not allowed: ${remaining_args[*]}"
-		usage
-		exit 1
-	fi
-		`
-	res += ftr + "\n"
-
+	// generate checks for required variables
 	res += p(2, "# set checks")
 	res += genChecks(opts)
 
+	// generate simple echo output of each parameter, for debug and testing
 	res += p(2, "# debug variables")
 	res += genDebugVarsEcho(opts)
 
