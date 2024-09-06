@@ -27,8 +27,6 @@ opts:
     defaultValue: "true"
     type: bool
     optional: true
-
-#
-# bash test.sh -d keycloak_base -h 10.40.240.30 -p 5432 -U postgres --verbose -O "/mnt/backup" -n "public|data_audit"
-# bash test.sh --dbname=keycloak_base --host=10.40.240.30 --port=5432 --username=postgres --verbose --output="/mnt/backup" --schema="public|data_audit"
-
+  - name: jobs
+    defaultValue: "2"
+    optional: true
