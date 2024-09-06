@@ -184,7 +184,10 @@ func GenOpts(opts cfg.Opts) string {
 
 	// declare options list
 	shorts, longs := genOpts(opts)
-	res += f(2, `VALID_ARGS=$(getopt -o %s --long %s -- "$@")`, shorts, longs)
+	res += f(2, "getopt_short_opts='%s'", shorts)
+	res += f(2, "getopt_long_opts='%s'", longs)
+	res += p(2, `VALID_ARGS=$(getopt -o "${getopt_short_opts}" --long "${getopt_long_opts}" -- "$@")`)
+	res += "\n"
 
 	// options header (always the same)
 	res += p(2, `# shellcheck disable=SC2181`)

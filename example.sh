@@ -2,19 +2,19 @@
 set -euo pipefail
 
 usage() {
-	cat <<EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 OPTION                DESCRIPTION                               REQUIRED
---help                                                                  
--d, --dbname          database to dump                          V       
--h, --host            database server host or socket directory  V       
--p, --port            database server port number               V       
--U, --username        connect as specified database user        V       
--O, --output          output path                               V       
--n, --schema          dump only schemas matching pattern                
--N, --exclude-schema  do not dump any schemas matching pattern          
--v, --verbose                                                           
+--help
+-d, --dbname          database to dump                          V
+-h, --host            database server host or socket directory  V
+-p, --port            database server port number               V
+-U, --username        connect as specified database user        V
+-O, --output          output path                               V
+-n, --schema          dump only schemas matching pattern
+-N, --exclude-schema  do not dump any schemas matching pattern
+-v, --verbose
 
 EOF
 }
@@ -29,14 +29,17 @@ main() {
   local exclude_schema=()
   local verbose="true"
 
-  VALID_ARGS=$(getopt -o d:h:p:U:O:n:N:v --long dbname:,host:,port:,username:,output:,schema:,exclude-schema:,verbose,help -- "$@")
+  getopt_short_opts='d:h:p:U:O:n:N:v'
+  getopt_long_opts='dbname:,host:,port:,username:,output:,schema:,exclude-schema:,verbose,help'
+  VALID_ARGS=$(getopt -o "${getopt_short_opts}" --long "${getopt_long_opts}" -- "$@")
+
   # shellcheck disable=SC2181
   if [ $? != 0 ]; then
     echo "error parsing options: $?"
     usage
     exit 1
   fi
-  
+
   eval set -- "$VALID_ARGS"
   while true; do
     case "$1" in
@@ -87,7 +90,7 @@ main() {
       ;;
     esac
   done
-  
+
   # check remaining
   shift $((OPTIND - 1))
   remaining_args="${*}"
@@ -137,5 +140,3 @@ main() {
 }
 
 main "${@}"
-
-

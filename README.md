@@ -12,7 +12,7 @@ Mostly all parameters are configured.
 * you don't need to specify short options, unless the short option is different that the first letter of the long one
 * by default all options are required, but you may add 'optional: true' setting
 * descriptions are used to generate helpful usage
-* in a field 'type' you may use "list, bool" values 
+* in a field 'type' you may use "list, bool" values
 
 ### Input config example
 
@@ -59,13 +59,13 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
-OPTION                DESCRIPTION
+OPTION                DESCRIPTION                               REQUIRED
 --help
--d, --dbname          database to dump
--h, --host            database server host or socket directory
--p, --port            database server port number
--U, --username        connect as specified database user
--O, --output          output path
+-d, --dbname          database to dump                          V
+-h, --host            database server host or socket directory  V
+-p, --port            database server port number               V
+-U, --username        connect as specified database user        V
+-O, --output          output path                               V
 -n, --schema          dump only schemas matching pattern
 -N, --exclude-schema  do not dump any schemas matching pattern
 -v, --verbose
@@ -83,11 +83,13 @@ main() {
   local exclude_schema=()
   local verbose="true"
 
-  VALID_ARGS=$(getopt -o d:h:p:U:O:n:N:v --long dbname:,host:,port:,username:,output:,schema:,exclude-schema:,verbose,help -- "$@")
+  getopt_short_opts='d:h:p:U:O:n:N:v'
+  getopt_long_opts='dbname:,host:,port:,username:,output:,schema:,exclude-schema:,verbose,help'
+  VALID_ARGS=$(getopt -o "${getopt_short_opts}" --long "${getopt_long_opts}" -- "$@")
 
   # shellcheck disable=SC2181
   if [ $? != 0 ]; then
-    printf "error parsing options"
+    echo "error parsing options: $?"
     usage
     exit 1
   fi
@@ -95,7 +97,6 @@ main() {
   eval set -- "$VALID_ARGS"
   while true; do
     case "$1" in
-
     -d | --dbname)
       dbname="${2}"
       shift 2
@@ -132,7 +133,6 @@ main() {
       usage
       exit 0
       ;;
-
     --)
       shift
       break
@@ -215,7 +215,7 @@ bash example.sh \
     -v \
     -O "/mnt/backup" \
     -n "public|data_audit"
-    
+
 # long form
 bash example.sh \
     --dbname=keycloak_base \
