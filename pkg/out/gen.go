@@ -2,11 +2,12 @@ package out
 
 import (
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/hashmap-kz/go-genopts/pkg/cfg"
 	"github.com/hashmap-kz/go-genopts/pkg/util"
 	"github.com/hashmap-kz/go-texttable/pkg/table"
-	"log"
-	"strings"
 )
 
 func f(pad int, format string, a ...any) string {
@@ -177,20 +178,19 @@ func GenOpts(opts cfg.Opts) string {
 	shorts, longs := genOpts(opts)
 	res += f(2, `VALID_ARGS=$(getopt -o %s --long %s -- "$@")`, shorts, longs)
 
-	hdr := `
-	# shellcheck disable=SC2181
-	if [ $? != 0 ]; then
-		printf "error parsing options"
-		usage
-		exit 1
-	fi
+	// options header (always the same)
+	res += p(2, `# shellcheck disable=SC2181`)
+	res += p(2, `if [ $? != 0 ]; then`)
+	res += p(2, `  echo "error parsing options: $?"`)
+	res += p(2, `  usage`)
+	res += p(2, `  exit 1`)
+	res += p(2, `fi`)
+	res += p(2, ``)
+	res += p(2, `eval set -- "$VALID_ARGS"`)
+	res += p(2, `while true; do`)
+	res += p(2, `  case "$1" in`)
 
-	eval set -- "$VALID_ARGS"
-	while true; do
-		case "$1" in
-		`
-	res += hdr + "\n"
-
+	// options cases
 	for _, k := range opts.Opts {
 		varname := getVariableNameFromKey(k.Name)
 
@@ -224,33 +224,33 @@ func GenOpts(opts cfg.Opts) string {
 	oneOpt += p(6, ";;")
 	res += oneOpt
 
-	ftr := `
-		--)
-			shift
-			break
-			;;
-		*)
-			echo "unexpected argument ${1}"
-			usage
-			exit 1
-			;;
-		esac
-	done
+	// options footer (always the same)
+	res += p(2, `  --)`)
+	res += p(2, `    shift`)
+	res += p(2, `    break`)
+	res += p(2, `    ;;`)
+	res += p(2, `  *)`)
+	res += p(2, `    echo "unexpected argument ${1}"`)
+	res += p(2, `    usage`)
+	res += p(2, `    exit 1`)
+	res += p(2, `    ;;`)
+	res += p(2, `  esac`)
+	res += p(2, `done`)
+	res += p(2, ``)
+	res += p(2, `# check remaining`)
+	res += p(2, `shift $((OPTIND - 1))`)
+	res += p(2, `remaining_args="${*}"`)
+	res += p(2, `if [ -n "${remaining_args}" ]; then`)
+	res += p(2, `  echo "remaining args are not allowed: ${remaining_args[*]}"`)
+	res += p(2, `  usage`)
+	res += p(2, `  exit 1`)
+	res += p(2, `fi`)
 
-	# check remaining
-	shift $((OPTIND - 1))
-	remaining_args="${*}"
-	if [ -n "${remaining_args}" ]; then
-		echo "remaining args are not allowed: ${remaining_args[*]}"
-		usage
-		exit 1
-	fi
-		`
-	res += ftr + "\n"
-
+	// generate checks for required variables
 	res += p(2, "# set checks")
 	res += genChecks(opts)
 
+	// generate simple echo output of each parameter, for debug and testing
 	res += p(2, "# debug variables")
 	res += genDebugVarsEcho(opts)
 

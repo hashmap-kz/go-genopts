@@ -2,19 +2,19 @@
 set -euo pipefail
 
 usage() {
-  cat <<EOF
+	cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
-OPTION                DESCRIPTION
---help
--d, --dbname          database to dump
+OPTION                DESCRIPTION                             
+--help                                                        
+-d, --dbname          database to dump                        
 -h, --host            database server host or socket directory
--p, --port            database server port number
--U, --username        connect as specified database user
--O, --output          output path
--n, --schema          dump only schemas matching pattern
+-p, --port            database server port number             
+-U, --username        connect as specified database user      
+-O, --output          output path                             
+-n, --schema          dump only schemas matching pattern      
 -N, --exclude-schema  do not dump any schemas matching pattern
--v, --verbose
+-v, --verbose                                                 
 
 EOF
 }
@@ -30,18 +30,16 @@ main() {
   local verbose="true"
 
   VALID_ARGS=$(getopt -o d:h:p:U:O:n:N:v --long dbname:,host:,port:,username:,output:,schema:,exclude-schema:,verbose,help -- "$@")
-
   # shellcheck disable=SC2181
   if [ $? != 0 ]; then
-    printf "error parsing options"
+    echo "error parsing options: $?"
     usage
     exit 1
   fi
-
+  
   eval set -- "$VALID_ARGS"
   while true; do
     case "$1" in
-
     -d | --dbname)
       dbname="${2}"
       shift 2
@@ -78,7 +76,6 @@ main() {
       usage
       exit 0
       ;;
-
     --)
       shift
       break
@@ -90,7 +87,7 @@ main() {
       ;;
     esac
   done
-
+  
   # check remaining
   shift $((OPTIND - 1))
   remaining_args="${*}"
@@ -99,7 +96,6 @@ main() {
     usage
     exit 1
   fi
-
   # set checks
   if [ -z "${dbname}" ]; then
     printf "\n[error] required arg is empty: dbname\n\n"
@@ -140,3 +136,5 @@ main() {
 }
 
 main "${@}"
+
+
