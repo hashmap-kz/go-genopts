@@ -37,7 +37,7 @@ main() {
 
   # shellcheck disable=SC2181
   if [ $? != 0 ]; then
-    echo "error parsing options: $?"
+    echo "error parsing options"
     usage
     exit 1
   fi

@@ -192,7 +192,7 @@ func GenOpts(opts cfg.Opts) string {
 	// options header (always the same)
 	res += p(2, `# shellcheck disable=SC2181`)
 	res += p(2, `if [ $? != 0 ]; then`)
-	res += p(2, `  echo "error parsing options: $?"`)
+	res += p(2, `  echo "error parsing options"`)
 	res += p(2, `  usage`)
 	res += p(2, `  exit 1`)
 	res += p(2, `fi`)
