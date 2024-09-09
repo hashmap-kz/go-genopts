@@ -8,11 +8,11 @@ Mostly all parameters are configured.
 
 ### Implementation details
 
-* --help option is added by default, you don't need to specify it (and it's added as a long option only, this prevents collisions)
-* you don't need to specify short options, unless the short option is different that the first letter of the long one
-* by default all options are required, but you may add 'optional: true' setting
-* descriptions are used to generate helpful usage
-* in a field 'type' you may use "list, bool" values
+- --help option is added by default, you don't need to specify it (and it's added as a long option only, this prevents collisions)
+- you don't need to specify short options, unless the short option is different that the first letter of the long one
+- by default all options are required, but you may add 'optional: true' setting
+- descriptions are used to generate helpful usage
+- in a field 'type' you may use "list, bool" values
 
 ### Input config example
 
@@ -46,6 +46,9 @@ opts:
     defaultValue: "true"
     type: bool
     optional: true
+  - name: jobs
+    defaultValue: "2"
+    optional: true
 
 ```
 
@@ -69,6 +72,7 @@ OPTION                DESCRIPTION                               REQUIRED
 -n, --schema          dump only schemas matching pattern
 -N, --exclude-schema  do not dump any schemas matching pattern
 -v, --verbose
+-j, --jobs
 
 EOF
 }
@@ -82,14 +86,15 @@ main() {
   local schema=()
   local exclude_schema=()
   local verbose="true"
+  local jobs="2"
 
-  getopt_short_opts='d:h:p:U:O:n:N:v'
-  getopt_long_opts='dbname:,host:,port:,username:,output:,schema:,exclude-schema:,verbose,help'
+  getopt_short_opts='d:h:p:U:O:n:N:vj:'
+  getopt_long_opts='dbname:,host:,port:,username:,output:,schema:,exclude-schema:,verbose,jobs:,help'
   VALID_ARGS=$(getopt -o "${getopt_short_opts}" --long "${getopt_long_opts}" -- "$@")
 
   # shellcheck disable=SC2181
   if [ $? != 0 ]; then
-    echo "error parsing options: $?"
+    echo "error parsing options"
     usage
     exit 1
   fi
@@ -129,6 +134,10 @@ main() {
       verbose=true
       shift
       ;;
+    -j | --jobs)
+      jobs="${2}"
+      shift 2
+      ;;
     --help)
       usage
       exit 0
@@ -149,37 +158,20 @@ main() {
   shift $((OPTIND - 1))
   remaining_args="${*}"
   if [ -n "${remaining_args}" ]; then
-    echo "remaining args are not allowed: ${remaining_args[*]}"
+    printf "\n[error]: remaining args are not allowed: ${remaining_args[*]}\n\n"
     usage
     exit 1
   fi
 
-  # set checks
-  if [ -z "${dbname}" ]; then
-    printf "\n[error] required arg is empty: dbname\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${host}" ]; then
-    printf "\n[error] required arg is empty: host\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${port}" ]; then
-    printf "\n[error] required arg is empty: port\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${username}" ]; then
-    printf "\n[error] required arg is empty: username\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${output}" ]; then
-    printf "\n[error] required arg is empty: output\n\n"
-    usage
-    exit 1
-  fi
+  # check that required parameters were set
+  local req_parameters=('dbname' 'host' 'port' 'username' 'output')
+  for req_param in "${req_parameters[@]}"; do
+    if [ -z "${!req_param:-}" ]; then
+      printf "\n[error]: required parameter is not set: ${req_param}\n\n"
+      usage
+      exit 1
+    fi
+  done
 
   # debug variables
   echo "dbname=${dbname}"
@@ -190,6 +182,7 @@ main() {
   echo "schema=${schema[*]}"
   echo "exclude_schema=${exclude_schema[*]}"
   echo "verbose=${verbose}"
+  echo "jobs=${jobs}"
 
 }
 

@@ -2,20 +2,20 @@
 set -euo pipefail
 
 usage() {
-	cat <<EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 OPTION                DESCRIPTION                               REQUIRED
---help                                                                  
--d, --dbname          database to dump                          V       
--h, --host            database server host or socket directory  V       
--p, --port            database server port number               V       
--U, --username        connect as specified database user        V       
--O, --output          output path                               V       
--n, --schema          dump only schemas matching pattern                
--N, --exclude-schema  do not dump any schemas matching pattern          
--v, --verbose                                                           
--j, --jobs                                                              
+--help
+-d, --dbname          database to dump                          V
+-h, --host            database server host or socket directory  V
+-p, --port            database server port number               V
+-U, --username        connect as specified database user        V
+-O, --output          output path                               V
+-n, --schema          dump only schemas matching pattern
+-N, --exclude-schema  do not dump any schemas matching pattern
+-v, --verbose
+-j, --jobs
 
 EOF
 }
@@ -37,11 +37,11 @@ main() {
 
   # shellcheck disable=SC2181
   if [ $? != 0 ]; then
-    echo "error parsing options: $?"
+    echo "error parsing options"
     usage
     exit 1
   fi
-  
+
   eval set -- "$VALID_ARGS"
   while true; do
     case "$1" in
@@ -96,42 +96,25 @@ main() {
       ;;
     esac
   done
-  
+
   # check remaining
   shift $((OPTIND - 1))
   remaining_args="${*}"
   if [ -n "${remaining_args}" ]; then
-    echo "remaining args are not allowed: ${remaining_args[*]}"
+    printf "\n[error]: remaining args are not allowed: ${remaining_args[*]}\n\n"
     usage
     exit 1
   fi
 
-  # set checks
-  if [ -z "${dbname}" ]; then
-    printf "\n[error] required arg is empty: dbname\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${host}" ]; then
-    printf "\n[error] required arg is empty: host\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${port}" ]; then
-    printf "\n[error] required arg is empty: port\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${username}" ]; then
-    printf "\n[error] required arg is empty: username\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${output}" ]; then
-    printf "\n[error] required arg is empty: output\n\n"
-    usage
-    exit 1
-  fi
+  # check that required parameters were set
+  local req_parameters=('dbname' 'host' 'port' 'username' 'output')
+  for req_param in "${req_parameters[@]}"; do
+    if [ -z "${!req_param:-}" ]; then
+      printf "\n[error]: required parameter is not set: ${req_param}\n\n"
+      usage
+      exit 1
+    fi
+  done
 
   # debug variables
   echo "dbname=${dbname}"
@@ -147,5 +130,3 @@ main() {
 }
 
 main "${@}"
-
-
