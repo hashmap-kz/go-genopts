@@ -101,38 +101,20 @@ main() {
   shift $((OPTIND - 1))
   remaining_args="${*}"
   if [ -n "${remaining_args}" ]; then
-    echo "remaining args are not allowed: ${remaining_args[*]}"
+    printf "\n[error]: remaining args are not allowed: ${remaining_args[*]}\n\n"
     usage
     exit 1
   fi
 
-  # set checks
-  if [ -z "${dbname}" ]; then
-    printf "\n[error] required arg is empty: dbname\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${host}" ]; then
-    printf "\n[error] required arg is empty: host\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${port}" ]; then
-    printf "\n[error] required arg is empty: port\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${username}" ]; then
-    printf "\n[error] required arg is empty: username\n\n"
-    usage
-    exit 1
-  fi
-  if [ -z "${output}" ]; then
-    printf "\n[error] required arg is empty: output\n\n"
-    usage
-    exit 1
-  fi
-
+  # check that required parameters were set
+  local req_parameters=('dbname' 'host' 'port' 'username' 'output')
+  for req_param in "${req_parameters[@]}"; do
+    if [ -z "${!req_param:-}" ]; then
+      printf "\n[error]: required parameter is not set: ${req_param}\n\n"
+      usage
+      exit 1
+    fi
+  done
   # debug variables
   echo "dbname=${dbname}"
   echo "host=${host}"

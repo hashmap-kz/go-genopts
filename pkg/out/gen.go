@@ -102,19 +102,9 @@ func genChecks(o cfg.Opts) string {
 			continue
 		}
 		varname := getVariableNameFromKey(k.Name)
-
-		if k.Type == cfg.OptTypeList {
-			res += f(2, `if [ -z "${%s[*]}" ]; then`, varname)
-		} else {
-			res += f(2, `if [ -z "${%s}" ]; then`, varname)
-		}
-
-		res += f(4, `printf "\n[error] required arg is empty: %s\n\n"`, k.Name)
-		res += p(4, "usage")
-		res += p(4, "exit 1")
-		res += p(2, "fi")
+		res += fmt.Sprintf("'%s' ", varname)
 	}
-	return res + "\n"
+	return strings.TrimSpace(res)
 }
 
 func genDebugVarsEcho(o cfg.Opts) string {
@@ -251,15 +241,24 @@ func GenOpts(opts cfg.Opts) string {
 	res += p(2, `shift $((OPTIND - 1))`)
 	res += p(2, `remaining_args="${*}"`)
 	res += p(2, `if [ -n "${remaining_args}" ]; then`)
-	res += p(2, `  echo "remaining args are not allowed: ${remaining_args[*]}"`)
+	res += p(2, `  printf "\n[error]: remaining args are not allowed: ${remaining_args[*]}\n\n"`)
 	res += p(2, `  usage`)
 	res += p(2, `  exit 1`)
 	res += p(2, `fi`)
 	res += "\n"
 
 	// generate checks for required variables
-	res += p(2, "# set checks")
-	res += genChecks(opts)
+	reqParamList := genChecks(opts)
+	res += p(2, `# check that required parameters were set`)
+	res += f(2, `local req_parameters=(%s)`, reqParamList)
+	res += p(2, `for req_param in "${req_parameters[@]}"; do`)
+	res += p(2, `  if [ -z "${!req_param:-}" ]; then`)
+	res += p(2, `    printf "\n[error]: required parameter is not set: ${req_param}\n\n"`)
+	res += p(2, `    usage`)
+	res += p(2, `    exit 1`)
+	res += p(2, `  fi`)
+	res += p(2, `done`)
+	res += "\n"
 
 	// generate simple echo output of each parameter, for debug and testing
 	res += p(2, "# debug variables")
