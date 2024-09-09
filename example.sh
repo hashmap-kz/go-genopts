@@ -2,20 +2,20 @@
 set -euo pipefail
 
 usage() {
-	cat <<EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 OPTION                DESCRIPTION                               REQUIRED
---help                                                                  
--d, --dbname          database to dump                          V       
--h, --host            database server host or socket directory  V       
--p, --port            database server port number               V       
--U, --username        connect as specified database user        V       
--O, --output          output path                               V       
--n, --schema          dump only schemas matching pattern                
--N, --exclude-schema  do not dump any schemas matching pattern          
--v, --verbose                                                           
--j, --jobs                                                              
+--help
+-d, --dbname          database to dump                          V
+-h, --host            database server host or socket directory  V
+-p, --port            database server port number               V
+-U, --username        connect as specified database user        V
+-O, --output          output path                               V
+-n, --schema          dump only schemas matching pattern
+-N, --exclude-schema  do not dump any schemas matching pattern
+-v, --verbose
+-j, --jobs
 
 EOF
 }
@@ -41,7 +41,7 @@ main() {
     usage
     exit 1
   fi
-  
+
   eval set -- "$VALID_ARGS"
   while true; do
     case "$1" in
@@ -96,7 +96,7 @@ main() {
       ;;
     esac
   done
-  
+
   # check remaining
   shift $((OPTIND - 1))
   remaining_args="${*}"
@@ -115,6 +115,7 @@ main() {
       exit 1
     fi
   done
+
   # debug variables
   echo "dbname=${dbname}"
   echo "host=${host}"
@@ -129,5 +130,3 @@ main() {
 }
 
 main "${@}"
-
-
