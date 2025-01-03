@@ -1,10 +1,15 @@
 # Generate bash getopt boilerplate.
 
-This tool is designed for fast setup bash scripts boilerplates.
+This tool is designed to simplify the creation of boilerplate code for Bash scripts, enabling quick and consistent setup.
 
-It generates the main function, usage, argument parsing routine and checks.
+It automates the generation of essential script components, including:
 
-Mostly all parameters are configured.
+- **Main Function**: Provides a structured entry point for your script.
+- **Usage Function**: Displays help information and usage instructions.
+- **Argument Parsing**: Handles command-line arguments and options.
+- **Input Validation and Checks**: Ensures robust error handling and parameter validation.
+
+Most parameters are pre-configured, allowing you to quickly create robust and reusable Bash scripts with minimal effort.
 
 ### Implementation details
 
