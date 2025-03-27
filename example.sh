@@ -2,20 +2,21 @@
 set -euo pipefail
 
 usage() {
-  cat <<EOF
+	cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 OPTION                DESCRIPTION                               REQUIRED
---help
--d, --dbname          database to dump                          V
--h, --host            database server host or socket directory  V
--p, --port            database server port number               V
--U, --username        connect as specified database user        V
--O, --output          output path                               V
--n, --schema          dump only schemas matching pattern
--N, --exclude-schema  do not dump any schemas matching pattern
--v, --verbose
--j, --jobs
+--help                                                                  
+-d, --dbname          database to dump                          V       
+-h, --host            database server host or socket directory  V       
+-p, --port            database server port number               V       
+-U, --username        connect as specified database user        V       
+-O, --output          output path                               V       
+-n, --schema          dump only schemas matching pattern                
+-N, --exclude-schema  do not dump any schemas matching pattern          
+-v, --verbose                                                           
+-j, --jobs                                                              
+-o, --db-filter       additional filters per-database                   
 
 EOF
 }
@@ -30,9 +31,10 @@ main() {
   local exclude_schema=()
   local verbose="true"
   local jobs="2"
+  declare -A db_filter=()
 
-  getopt_short_opts='d:h:p:U:O:n:N:vj:'
-  getopt_long_opts='dbname:,host:,port:,username:,output:,schema:,exclude-schema:,verbose,jobs:,help'
+  getopt_short_opts='d:h:p:U:O:n:N:vj:o:'
+  getopt_long_opts='dbname:,host:,port:,username:,output:,schema:,exclude-schema:,verbose,jobs:,db-filter:,help'
   VALID_ARGS=$(getopt -o "${getopt_short_opts}" --long "${getopt_long_opts}" -- "$@")
 
   # shellcheck disable=SC2181
@@ -41,7 +43,7 @@ main() {
     usage
     exit 1
   fi
-
+  
   eval set -- "$VALID_ARGS"
   while true; do
     case "$1" in
@@ -81,6 +83,12 @@ main() {
       jobs="${2}"
       shift 2
       ;;
+    -o | --db-filter)
+      kv="${2}"
+      IFS='=' read -r key value <<< "${kv}"
+      db_filter["${key}"]="${value}"
+      shift 2
+      ;;
     --help)
       usage
       exit 0
@@ -96,12 +104,12 @@ main() {
       ;;
     esac
   done
-
+  
   # check remaining
   shift $((OPTIND - 1))
   remaining_args="${*}"
   if [ -n "${remaining_args}" ]; then
-    printf "\n[error]: remaining args are not allowed: ${remaining_args[*]}\n\n"
+    printf "\n[error]: remaining args are not allowed: %s\n\n" "${remaining_args[*]}"
     usage
     exit 1
   fi
@@ -110,7 +118,7 @@ main() {
   local req_parameters=('dbname' 'host' 'port' 'username' 'output')
   for req_param in "${req_parameters[@]}"; do
     if [ -z "${!req_param:-}" ]; then
-      printf "\n[error]: required parameter is not set: ${req_param}\n\n"
+      printf "\n[error]: required parameter is not set: %s\n\n" "${req_param}"
       usage
       exit 1
     fi
@@ -126,7 +134,13 @@ main() {
   echo "exclude_schema=${exclude_schema[*]}"
   echo "verbose=${verbose}"
   echo "jobs=${jobs}"
+  echo "db_filter":
+  for elem in "${!db_filter[@]}"; do
+    echo "  ${elem} => ${db_filter[${elem}]}"
+  done
 
 }
 
 main "${@}"
+
+

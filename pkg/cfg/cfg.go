@@ -16,12 +16,13 @@ type OptType string
 const (
 	OptTypeBool OptType = "bool"
 	OptTypeList OptType = "list"
+	OptTypeMap  OptType = "map"
 )
 
 type Opt struct {
 	Name  string `json:"name"`
 	Short string `json:"short"`
-	// Allowed: bool, list
+	// Allowed: bool, list, map
 	Type         OptType `json:"type"`
 	DefaultValue string  `json:"defaultValue"`
 	Optional     bool    `json:"optional"`

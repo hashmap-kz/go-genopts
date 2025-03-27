@@ -33,6 +33,8 @@ func genLocals(o cfg.Opts) string {
 		} else {
 			if k.Type == cfg.OptTypeList {
 				res += f(2, "local %s=()", varname)
+			} else if k.Type == cfg.OptTypeMap {
+				res += f(2, "declare -A %s=()", varname)
 			} else if k.Type == cfg.OptTypeBool {
 				res += f(2, "local %s='false'", varname)
 			} else {
@@ -113,6 +115,11 @@ func genDebugVarsEcho(o cfg.Opts) string {
 		varname := getVariableNameFromKey(k.Name)
 		if k.Type == cfg.OptTypeList {
 			res += f(2, `echo "%s=${%s[*]}"`, varname, varname)
+		} else if k.Type == cfg.OptTypeMap {
+			res += f(2, `echo "%s":`, varname)
+			res += f(2, `for elem in "${!%s[@]}"; do`, varname)
+			res += f(4, `echo "  ${elem} => ${%s[${elem}]}"`, varname)
+			res += f(2, `done`)
 		} else {
 			res += f(2, `echo "%s=${%s}"`, varname, varname)
 		}
@@ -128,7 +135,6 @@ func req(k cfg.Opt) string {
 }
 
 func genUsage(o cfg.Opts) string {
-
 	optsDesc := "usage() {\n"
 	optsDesc += "	cat <<EOF\n"
 	optsDesc += `Usage: $(basename "$0") [OPTIONS]` + "\n\n"
@@ -162,7 +168,6 @@ func genUsage(o cfg.Opts) string {
 }
 
 func GenOpts(opts cfg.Opts) string {
-
 	res := "#!/bin/bash\n"
 	res += "set -euo pipefail\n\n"
 
@@ -208,6 +213,14 @@ func GenOpts(opts cfg.Opts) string {
 			oneOpt += p(6, "shift 2")
 			oneOpt += p(6, ";;")
 			res += oneOpt
+		} else if k.Type == cfg.OptTypeMap {
+			oneOpt += f(4, "-%s | --%s)", getOneShort(k), k.Name)
+			oneOpt += p(6, `kv="${2}"`)
+			oneOpt += p(6, `IFS='=' read -r key value <<< "${kv}"`)
+			oneOpt += f(6, `%s["${key}"]="${value}"`, varname)
+			oneOpt += p(6, "shift 2")
+			oneOpt += p(6, ";;")
+			res += oneOpt
 		} else {
 			oneOpt += f(4, "-%s | --%s)", getOneShort(k), k.Name)
 			oneOpt += f(6, `%s="${2}"`, varname)
@@ -241,7 +254,7 @@ func GenOpts(opts cfg.Opts) string {
 	res += p(2, `shift $((OPTIND - 1))`)
 	res += p(2, `remaining_args="${*}"`)
 	res += p(2, `if [ -n "${remaining_args}" ]; then`)
-	res += p(2, `  printf "\n[error]: remaining args are not allowed: ${remaining_args[*]}\n\n"`)
+	res += p(2, `  printf "\n[error]: remaining args are not allowed: %s\n\n" "${remaining_args[*]}"`)
 	res += p(2, `  usage`)
 	res += p(2, `  exit 1`)
 	res += p(2, `fi`)
@@ -253,7 +266,7 @@ func GenOpts(opts cfg.Opts) string {
 	res += f(2, `local req_parameters=(%s)`, reqParamList)
 	res += p(2, `for req_param in "${req_parameters[@]}"; do`)
 	res += p(2, `  if [ -z "${!req_param:-}" ]; then`)
-	res += p(2, `    printf "\n[error]: required parameter is not set: ${req_param}\n\n"`)
+	res += p(2, `    printf "\n[error]: required parameter is not set: %s\n\n" "${req_param}"`)
 	res += p(2, `    usage`)
 	res += p(2, `    exit 1`)
 	res += p(2, `  fi`)

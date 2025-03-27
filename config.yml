@@ -30,3 +30,8 @@ opts:
   - name: jobs
     defaultValue: "2"
     optional: true
+  - name: db-filter
+    type: map
+    short: "o"
+    desc: "additional filters per-database"
+    optional: true

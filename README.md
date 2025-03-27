@@ -17,7 +17,7 @@ Most parameters are pre-configured, allowing you to quickly create robust and re
 - you don't need to specify short options, unless the short option is different that the first letter of the long one
 - by default all options are required, but you may add 'optional: true' setting
 - descriptions are used to generate helpful usage
-- in a field 'type' you may use "list, bool" values
+- in a field 'type' you may use "list, bool, map" values
 
 ### Input config example
 
@@ -54,7 +54,11 @@ opts:
   - name: jobs
     defaultValue: "2"
     optional: true
-
+  - name: db-filter
+    type: map
+    short: "o"
+    desc: "additional filters per-database"
+    optional: true
 ```
 
 ### Generated code
@@ -212,7 +216,8 @@ bash example.sh \
     -U postgres \
     -v \
     -O "/mnt/backup" \
-    -n "public|data_audit"
+    -n "public|data_audit" \
+    -o param1=value1
 
 # long form
 bash example.sh \
@@ -222,5 +227,7 @@ bash example.sh \
     --username=postgres \
     --verbose \
     --output="/mnt/backup" \
-    --schema="public|data_audit"
+    --schema="public|data_audit" \
+    --db-filter=param1="value1" \
+    --db-filter=param2="value2"
 ```
